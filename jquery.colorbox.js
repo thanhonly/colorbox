@@ -40,6 +40,7 @@
 		right: false,
 		fixed: false,
 		data: undefined,
+		pagination: true,
 		closeButton: true,
 		fastIframe: true,
 		open: false,
@@ -154,6 +155,7 @@
 	$next,
 	$prev,
 	$close,
+	$pagination,
 	$groupControls,
 	$events = $('<a/>'), // $({}) would be prefered, but there is an issue with jQuery 1.4.2
 
@@ -484,6 +486,7 @@
 				$current = $tag(div, "Current"),
 				$prev = $('<button type="button"/>').attr({id:prefix+'Previous'}),
 				$next = $('<button type="button"/>').attr({id:prefix+'Next'}),
+				$pagination = $('<div></div>').attr({id:prefix+'Pagination'}),
 				$slideshow = $tag('button', "Slideshow"),
 				$loadingOverlay
 			);
@@ -547,7 +550,18 @@
 						publicMethod.close();
 					}
 				});
-
+				$pagination.click(function (e) {
+					if(! $(e.target).is('a') ) {
+						return;
+					}
+					var index = $(e.target).text() - 1;
+					
+					if(isNaN(index)){
+						return;
+					}
+					publicMethod.paginate(index);
+					return false;
+				});
 				// Key Bindings
 				$(document).bind('keydown.' + prefix, function (e) {
 					var key = e.keyCode;
@@ -841,7 +855,15 @@
 				if (typeof settings.get('current') === "string") {
 					$current.html(settings.get('current').replace('{current}', index + 1).replace('{total}', total)).show();
 				}
-
+				if (typeof settings.get('pagination') && settings.get('pagination') == true){
+					var $ol = $('<ol></ol>');
+					for(var i=0; i<total; i++){
+						$ol.append('<li><a href="#">'+(i+1)+'</a></li>');
+					}
+					$pagination.children().remove();
+					$pagination.append($ol);
+					$pagination.find('li').eq(index).addClass('active');
+				}
 				$next[(settings.get('loop') || index < total - 1) ? "show" : "hide"]().html(settings.get('next'));
 				$prev[(settings.get('loop') || index) ? "show" : "hide"]().html(settings.get('previous'));
 
@@ -1050,7 +1072,12 @@
 			launch($related[index]);
 		}
 	};
-
+	// Navigates to the clicked item.
+	publicMethod.paginate = function (index) {
+		if (!active && $related[1] && (settings.get('loop') || index)) {
+			launch($related[index]);
+		}
+	};
 	// Note: to use this within an iframe use the following format: parent.jQuery.colorbox.close();
 	publicMethod.close = function () {
 		if (open && !closing) {
